@@ -41,7 +41,7 @@ namespace nonstd {
             virtual ~IAnon() = default;
             virtual void* obj_addr() noexcept = 0;
             virtual const std::type_info& obj_type() const noexcept = 0;
-            virtual std::unique_ptr<IAnon> copy() const = 0;
+            virtual IAnon* copy() const = 0;
         };
 
         template<typename Ty>
@@ -65,8 +65,8 @@ namespace nonstd {
                 return typeid(Tobj);
             }
 
-            std::unique_ptr<IAnon> copy() const override {
-                return std::unique_ptr<IAnon>( new AnonImpl<Ty>(obj_) );
+            IAnon* copy() const override {
+                return new AnonImpl<Ty>(obj_);
             }
         };
 
