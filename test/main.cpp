@@ -52,7 +52,7 @@ struct MyType : MyTypeBase {
 int main() {
     std::cout << "hello" << '\n';
 
-    const auto float_ptr = nonstd::anon_ptr::make_anon<float>(3.7f);
+    const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
     std::cout << "anon type [float_ptr]: " << float_ptr.type().name() << '\n';
 
     try {
@@ -84,13 +84,18 @@ int main() {
         std::cout << float_ptr.get<const float>() << '\n';
         std::cout << float_ptr.get<const float*>() << '\n';
         std::cout << float_ptr.get<const float&>() << '\n';
+
+        if (!float_ptr.is<float>()) {
+            std::cerr << "Error: not a float" << '\n';
+            return 1;
+        }
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         return 1;
     }
 
     {
-        const auto my_type_ptr = nonstd::anon_ptr::make_anon<MyType>();
+        const auto my_type_ptr = nonstd::anon_ptr::make<MyType>();
 
         if (!ctor_called) {
             std::cerr << "Error: MyType ctor was not called" << '\n';

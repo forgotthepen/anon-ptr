@@ -41,7 +41,7 @@ namespace nonstd {
             virtual ~IAnon() = default;
             virtual void* obj_addr() noexcept = 0;
             virtual const std::type_info& obj_type() const noexcept = 0;
-            virtual IAnon* copy() const = 0;
+            virtual std::unique_ptr<IAnon> copy() const = 0;
         };
 
         template<typename Ty>
@@ -65,19 +65,17 @@ namespace nonstd {
                 return typeid(Tobj);
             }
 
-            IAnon* copy() const override {
-                return new AnonImpl<Ty>(obj_);
+            std::unique_ptr<IAnon> copy() const override {
+                return std::unique_ptr<IAnon>( new AnonImpl<Ty>(obj_) );
             }
         };
 
         template<typename Ty>
         inline void ensure_compat_type() const noexcept(false) {
-            using Tobj = typename value_of<Ty>::type;
-
-            const auto &obj_type = typeid(Tobj);
-            const auto &anon_type = anon_->obj_type();
-            if (obj_type != anon_type) {
-                throw invalid_cast_exception("Invalid cast to '" + std::string(obj_type.name()) + "' underlying object is '" + anon_type.name() + "'");
+            if (!is<Ty>()) {
+                throw invalid_cast_exception(
+                    "Invalid cast to '" + std::string(typeid(Ty).name()) + "' underlying object is '" + anon_->obj_type().name() + "'"
+                );
             }
         }
 
@@ -178,8 +176,15 @@ namespace nonstd {
             return anon_->obj_type();
         }
 
+        template<typename Ty>
+        inline bool is() const noexcept {
+            using Tobj = typename value_of<Ty>::type;
+
+            return typeid(Tobj) == anon_->obj_type();
+        }
+
         template<typename Ty, typename ...Args>
-        static anon_ptr make_anon(Args&& ...args) {
+        static anon_ptr make(Args&& ...args) {
             return anon_ptr(static_cast<IAnon *>(
                 new AnonImpl<Ty>( std::forward<Args>(args) ... )
             ));

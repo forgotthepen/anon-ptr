@@ -51,7 +51,7 @@ int main() {
 int main() {
     std::cout << "hello" << '\n';
 
-    const auto float_ptr = nonstd::anon_ptr::make_anon<float>(3.7f);
+    const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
     std::cout << "anon type [float_ptr]: " << float_ptr.type().name() << '\n';
     // MSVC: anon type [float_ptr]: float
 
@@ -117,6 +117,29 @@ int main() {
     } catch (const nonstd::anon_ptr::invalid_cast_exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         // MSVC: Error: Invalid cast to 'int' underlying object is 'float'
+    }
+
+    std::cout << "\n\nbye!!" << '\n';
+    return 0;
+}
+```
+
+## Example (check runtime type):
+```c++
+#include "anon-ptr/anon-ptr.hpp"
+#include <iostream>
+#include <exception>
+// #include <typeinfo> // if you want to use std::bad_cast
+
+int main() {
+    std::cout << "hello" << '\n';
+
+    const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
+    if (!float_ptr.is<float>()) {
+        std::cerr << "Error: not a float" << '\n';
+        return 1;
+    } else {
+        std::cout << "Float type" << '\n';
     }
 
     std::cout << "\n\nbye!!" << '\n';
