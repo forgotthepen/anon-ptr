@@ -74,7 +74,8 @@ namespace nonstd {
         inline void ensure_compat_type() const noexcept(false) {
             if (!is<Ty>()) {
                 throw invalid_cast_exception(
-                    "Invalid cast to '" + std::string(typeid(Ty).name()) + "' underlying object is '" + anon_->obj_type().name() + "'"
+                    "Invalid cast to '" + std::string(typeid(Ty).name()) +
+                    "' underlying object is '" + anon_->obj_type().name() + "'"
                 );
             }
         }
@@ -130,7 +131,7 @@ namespace nonstd {
 
         std::unique_ptr<IAnon> anon_;
 
-        explicit anon_ptr(IAnon *anon):
+        explicit anon_ptr(IAnon *anon) noexcept:
             anon_(anon)
         { }
 
@@ -140,7 +141,7 @@ namespace nonstd {
             std::string err_;
 
         public:
-            invalid_cast_exception(std::string err):
+            invalid_cast_exception(std::string err) noexcept:
                 err_( std::move(err) )
             { }
 
@@ -160,7 +161,7 @@ namespace nonstd {
         template<typename Ty, typename = typename std::enable_if<
             !std::is_same<anon_ptr, typename value_of<Ty>::type>::value
         >::type>
-        anon_ptr(Ty&& obj):
+        anon_ptr(Ty&& obj) noexcept(false):
             anon_( new AnonImpl<Ty>( std::forward<Ty>(obj) ) )
         { }
 
@@ -168,11 +169,11 @@ namespace nonstd {
         anon_ptr& operator =(const anon_ptr &other) = default;
 
         template<typename Ty>
-        inline typename anon_cast<Ty>::type_ret get() const {
+        inline typename anon_cast<Ty>::type_ret get() const noexcept(false) {
             return anon_cast<Ty>::that(*this);
         }
 
-        inline const std::type_info& type() const {
+        inline const std::type_info& type() const noexcept {
             return anon_->obj_type();
         }
 
@@ -184,7 +185,7 @@ namespace nonstd {
         }
 
         template<typename Ty, typename ...Args>
-        static anon_ptr make(Args&& ...args) {
+        static anon_ptr make(Args&& ...args) noexcept(false) {
             return anon_ptr(static_cast<IAnon *>(
                 new AnonImpl<Ty>( std::forward<Args>(args) ... )
             ));
