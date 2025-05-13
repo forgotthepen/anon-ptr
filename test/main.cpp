@@ -14,7 +14,7 @@ struct MyTypeBase {
     }
 
     virtual ~MyTypeBase() {
-        std::cout << "MyTypeBase dtor()" << '\n';
+        std::cout << "MyTypeBase ~dtor()" << '\n';
     }
 };
 
@@ -44,7 +44,7 @@ struct MyType : MyTypeBase {
     ~MyType() {
         ctor_called = false;
         dtor_called = true;
-        std::cout << "MyType dtor(), identity=" << iden << '\n';
+        std::cout << "MyType ~dtor(), identity=" << iden << '\n';
         iden = 0;
     }
 };
@@ -52,8 +52,15 @@ struct MyType : MyTypeBase {
 int main() {
     std::cout << "hello" << '\n';
 
-    const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
-    std::cout << "anon type [float_ptr]: " << float_ptr.type().name() << '\n';
+    try {
+        char arr[] = {5,6,7};
+        nonstd::anon_ptr arr_ptr = arr;
+        std::cout << "anon type [any_ptr]: " << arr_ptr.type().name() << '\n';
+        arr_ptr.get<char **>();
+    } catch (const std::exception &ex) {
+        std::cerr << "Error: " << ex.what() << '\n';
+        return 1;
+    }
 
     try {
         nonstd::anon_ptr any_ptr = 33.654;
@@ -67,28 +74,11 @@ int main() {
 
         {
             nonstd::anon_ptr any_ptr_copy = any_ptr;
-            std::cout << "  anon type [any_ptr_copy]: " << any_ptr.type().name() << '\n';
+            std::cout << "  anon type [any_ptr_copy]: " << any_ptr_copy.type().name() << '\n';
         }
 
         any_ptr = "some string";
         std::cout << "anon type [any_ptr]: " << any_ptr.type().name() << '\n';
-    } catch (const std::exception &ex) {
-        std::cerr << "Error: " << ex.what() << '\n';
-        return 1;
-    }
-
-    try {
-        std::cout << float_ptr.get<float>() << '\n';
-        std::cout << float_ptr.get<float*>() << '\n';
-        std::cout << float_ptr.get<float&>() << '\n';
-        std::cout << float_ptr.get<const float>() << '\n';
-        std::cout << float_ptr.get<const float*>() << '\n';
-        std::cout << float_ptr.get<const float&>() << '\n';
-
-        if (!float_ptr.is<float>()) {
-            std::cerr << "Error: not a float" << '\n';
-            return 1;
-        }
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         return 1;
@@ -121,6 +111,26 @@ int main() {
 
     if (!dtor_called) {
         std::cerr << "Error: MyType dtor was not called" << '\n';
+        return 1;
+    }
+
+    const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
+    std::cout << "anon type [float_ptr]: " << float_ptr.type().name() << '\n';
+
+    try {
+        std::cout << float_ptr.get<float>() << '\n';
+        std::cout << float_ptr.get<float*>() << '\n';
+        std::cout << float_ptr.get<float&>() << '\n';
+        std::cout << float_ptr.get<const float>() << '\n';
+        std::cout << float_ptr.get<const float*>() << '\n';
+        std::cout << float_ptr.get<const float&>() << '\n';
+
+        if (!float_ptr.is<float>()) {
+            std::cerr << "Error: not a float" << '\n';
+            return 1;
+        }
+    } catch (const std::exception &ex) {
+        std::cerr << "Error: " << ex.what() << '\n';
         return 1;
     }
 
