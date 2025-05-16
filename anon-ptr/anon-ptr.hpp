@@ -44,8 +44,8 @@ namespace nonstd {
 
             virtual void* obj_addr() noexcept = 0;
             virtual const std::type_info& obj_type() const noexcept = 0;
-            virtual void copy(void *mem) const = 0;
-            virtual void move(void *mem) noexcept = 0;
+            virtual void copy_inplace(void *mem) const = 0;
+            virtual void move_inplace(void *mem) noexcept = 0;
         };
 
         template<typename Ty>
@@ -58,7 +58,7 @@ namespace nonstd {
 
             TobjPtr obj_ptr_;
 
-            AnonImpl(disambig, TobjPtr ptr):
+            AnonImpl(disambig, TobjPtr ptr) noexcept:
                 obj_ptr_(ptr)
             { }
 
@@ -83,11 +83,11 @@ namespace nonstd {
                 return typeid(Tobj);
             }
 
-            void copy(void *mem) const override {
+            void copy_inplace(void *mem) const override {
                 new (mem) AnonImpl<Ty>( *obj_ptr_ );
             }
 
-            void move(void *mem) noexcept override {
+            void move_inplace(void *mem) noexcept override {
                 new (mem) AnonImpl<Ty>( disambig{}, obj_ptr_ );
                 obj_ptr_ = nullptr;
             }
@@ -162,7 +162,7 @@ namespace nonstd {
             static_assert(sizeof(AnonImpl<Ty>) <= sizeof(anon_mem_), "In-class memory is too small");
         }
 
-        alignas(void *) char anon_mem_[2 * sizeof(AnonImpl<void *>)];
+        alignas(sizeof(AnonImpl<void *>)) char anon_mem_[2 * sizeof(AnonImpl<void *>)];
         IAnon *anon_;
 
     public:
@@ -190,14 +190,14 @@ namespace nonstd {
         anon_ptr(anon_ptr &&other) noexcept:
             anon_(reinterpret_cast<IAnon *>(anon_mem_))
         {
-            other.anon_->move( reinterpret_cast<void *>(anon_mem_) );
+            other.anon_->move_inplace( reinterpret_cast<void *>(anon_mem_) );
             other.anon_ = nullptr;
         }
 
         anon_ptr(const anon_ptr &other):
             anon_(reinterpret_cast<IAnon *>(anon_mem_))
         {
-            other.anon_->copy( reinterpret_cast<void *>(anon_mem_) );
+            other.anon_->copy_inplace( reinterpret_cast<void *>(anon_mem_) );
         }
 
         ~anon_ptr() {
