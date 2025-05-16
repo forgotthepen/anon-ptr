@@ -49,6 +49,7 @@ struct MyType : MyTypeBase {
     }
 };
 
+
 int main() {
     std::cout << "hello" << '\n';
 
@@ -56,7 +57,7 @@ int main() {
         char arr[] = {5,6,7};
         nonstd::anon_ptr arr_ptr = arr;
         std::cout << "anon type [any_ptr]: " << arr_ptr.type().name() << '\n';
-        arr_ptr.get<char **>();
+        arr_ptr.get<char *>();
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         return 1;
@@ -79,6 +80,7 @@ int main() {
 
         any_ptr = "some string";
         std::cout << "anon type [any_ptr]: " << any_ptr.type().name() << '\n';
+        std::cout << "anon value [any_ptr]: " << any_ptr.get<const char *>() << '\n';
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         return 1;
@@ -119,10 +121,10 @@ int main() {
 
     try {
         std::cout << float_ptr.get<float>() << '\n';
-        std::cout << float_ptr.get<float*>() << '\n';
+        // std::cout << float_ptr.get<float*>() << '\n';
         std::cout << float_ptr.get<float&>() << '\n';
         std::cout << float_ptr.get<const float>() << '\n';
-        std::cout << float_ptr.get<const float*>() << '\n';
+        // std::cout << float_ptr.get<const float*>() << '\n';
         std::cout << float_ptr.get<const float&>() << '\n';
 
         if (!float_ptr.is<float>()) {

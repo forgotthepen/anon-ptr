@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <utility> // std::forward, std::move
 #include <typeinfo> // std::type_info, std::bad_cast
-#include <type_traits> // std::decay, std::enable_if, std::is_same, std::add_pointer
+#include <type_traits> // std::decay, std::enable_if, std::is_same, std::add_pointer, std::is_pointer
 #include <string>
 
 
@@ -42,52 +42,86 @@ namespace nonstd {
         struct IAnon {
             virtual ~IAnon() = default;
 
-            virtual void* obj_addr() noexcept = 0;
+            virtual void* obj_addr() const noexcept = 0;
             virtual const std::type_info& obj_type() const noexcept = 0;
-            virtual void copy_inplace(void *mem) const = 0;
-            virtual void move_inplace(void *mem) noexcept = 0;
+            virtual void copy_myself(void *mem) const = 0;
+            virtual void move_myself(void *mem) noexcept = 0;
         };
 
         template<typename Ty>
         class AnonImpl : public IAnon {
         private:
             using Tobj = typename value_of<Ty>::type;
-            using TobjPtr = typename std::add_pointer<Tobj>::type;
+            using TobjPtr = typename std::conditional<
+                std::is_pointer<Tobj>::value,
+                Tobj, // if pointer type, use it directly
+                typename std::add_pointer<Tobj>::type
+            >::type;
 
             struct disambig {};
 
             TobjPtr obj_ptr_;
 
-            AnonImpl(disambig, TobjPtr ptr) noexcept:
+            explicit AnonImpl(disambig, TobjPtr ptr) noexcept: // this is used as a move ctor
                 obj_ptr_(ptr)
             { }
 
+            template<
+                typename Tcheck = Tobj,
+                typename std::enable_if< std::is_pointer<Tcheck>::value, bool >::type = true
+            >
+            inline TobjPtr get_underlying_obj() const noexcept {
+                return obj_ptr_;
+            }
+
+            template<
+                typename Tcheck = Tobj,
+                typename std::enable_if< !std::is_pointer<Tcheck>::value, bool >::type = true
+            >
+            inline const Tobj& get_underlying_obj() const noexcept {
+                return *obj_ptr_;
+            }
+
         public:
-            template<typename ...Args>
+            template<
+                typename Tcheck = Tobj,
+                typename std::enable_if< std::is_pointer<Tcheck>::value, bool >::type = true
+            >
+            AnonImpl(TobjPtr ptr) noexcept:
+                obj_ptr_(ptr)
+            { }
+
+            template<
+                typename Tcheck = Tobj,
+                typename std::enable_if< !std::is_pointer<Tcheck>::value, bool >::type = true,
+                typename ...Args
+            >
             AnonImpl(Args&& ...args):
                 obj_ptr_(new Tobj( std::forward<Args>(args) ... ))
             { }
 
             ~AnonImpl() override {
                 if (obj_ptr_ != nullptr) {
-                    delete obj_ptr_;
+                    if (!std::is_pointer<Tobj>::value) { // we don't own pointers, we just save them
+                        delete obj_ptr_;
+                    }
                     obj_ptr_ = nullptr;
                 }
             }
 
-            void* obj_addr() noexcept override {
-                return reinterpret_cast<void *>(obj_ptr_);
+            void* obj_addr() const noexcept override {
+                return const_cast<void *>( reinterpret_cast<const void *>(obj_ptr_) );
             }
 
             const std::type_info& obj_type() const noexcept override {
                 return typeid(Tobj);
             }
 
-            void copy_inplace(void *mem) const override {
-                new (mem) AnonImpl<Ty>( *obj_ptr_ );
+            void copy_myself(void *mem) const override {
+                new (mem) AnonImpl<Ty>( get_underlying_obj() );
             }
 
-            void move_inplace(void *mem) noexcept override {
+            void move_myself(void *mem) noexcept override {
                 new (mem) AnonImpl<Ty>( disambig{}, obj_ptr_ );
                 obj_ptr_ = nullptr;
             }
@@ -118,7 +152,7 @@ namespace nonstd {
             using type_ret = Ty*;
 
             static inline type_ret that(const anon_ptr &ptr) noexcept(false) {
-                ptr.ensure_compat_type<Ty>();
+                ptr.ensure_compat_type<Ty *>();
                 return static_cast<Ty *>(ptr.anon_->obj_addr());
             }
         };
@@ -156,13 +190,13 @@ namespace nonstd {
         struct disambig {};
 
         template<typename Ty, typename ...Args>
-        anon_ptr(disambig<Ty>, Args&& ...args):
+        explicit anon_ptr(disambig<Ty>, Args&& ...args):
             anon_(new (reinterpret_cast<void *>(anon_mem_)) AnonImpl<Ty>( std::forward<Args>(args) ... ))
         {
             static_assert(sizeof(AnonImpl<Ty>) <= sizeof(anon_mem_), "In-class memory is too small");
         }
 
-        alignas(sizeof(AnonImpl<void *>)) char anon_mem_[2 * sizeof(AnonImpl<void *>)];
+        alignas(sizeof(AnonImpl<void *>)) char anon_mem_[sizeof(AnonImpl<void *>)];
         IAnon *anon_;
 
     public:
@@ -190,14 +224,14 @@ namespace nonstd {
         anon_ptr(anon_ptr &&other) noexcept:
             anon_(reinterpret_cast<IAnon *>(anon_mem_))
         {
-            other.anon_->move_inplace( reinterpret_cast<void *>(anon_mem_) );
+            other.anon_->move_myself( reinterpret_cast<void *>(anon_mem_) );
             other.anon_ = nullptr;
         }
 
         anon_ptr(const anon_ptr &other):
             anon_(reinterpret_cast<IAnon *>(anon_mem_))
         {
-            other.anon_->copy_inplace( reinterpret_cast<void *>(anon_mem_) );
+            other.anon_->copy_myself( reinterpret_cast<void *>(anon_mem_) );
         }
 
         ~anon_ptr() {
