@@ -1,4 +1,4 @@
-# Anonymous pointer for any element type, for homogeneous collections
+# Anonymous pointer to any element type for homogeneous collections
 
 The type of the containing/pointer class itself `anon_ptr` is non-templated, but the underlying pointer can point to an object of any type.  
 After object creation, the underlying object is type erased, and some runtime type information is kept for later usage.  
