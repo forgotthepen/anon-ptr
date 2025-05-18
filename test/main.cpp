@@ -58,6 +58,10 @@ int main() {
         nonstd::anon_ptr arr_ptr = arr;
         std::cout << "anon type [any_ptr]: " << arr_ptr.type().name() << '\n';
         arr_ptr.get<char *>();
+        if (!arr_ptr.is<char *>()) {
+            std::cerr << "Error: not a char *" << '\n';
+            return 1;
+        }
     } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << '\n';
         return 1;
@@ -128,6 +132,11 @@ int main() {
         std::cout << float_ptr.get<const float&>() << '\n';
 
         if (!float_ptr.is<float>()) {
+            std::cerr << "Error: not a float" << '\n';
+            return 1;
+        }
+
+        if (!float_ptr.is_any<int, double, float>()) {
             std::cerr << "Error: not a float" << '\n';
             return 1;
         }

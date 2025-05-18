@@ -129,7 +129,7 @@ namespace nonstd {
 
         template<typename Ty>
         inline void ensure_compat_type() const noexcept(false) {
-            if (!is<Ty>()) {
+            if (!is_any_impl<Ty>()) {
                 throw invalid_cast_exception(
                     "Invalid cast to '" + std::string(typeid(Ty).name()) +
                     "' underlying object is '" + anon_->obj_type().name() + "'"
@@ -196,6 +196,18 @@ namespace nonstd {
             static_assert(sizeof(AnonImpl<Ty>) <= sizeof(anon_mem_), "In-class memory is too small");
         }
 
+        template<typename Ty>
+        inline bool is_any_impl() const noexcept {
+            using Tobj = typename value_of<Ty>::type;
+
+            return typeid(Tobj) == anon_->obj_type();
+        }
+        
+        template<typename Ty, typename Tother, typename... Args>
+        inline bool is_any_impl() const noexcept {
+            return is_any_impl<Ty>() || is_any_impl<Tother, Args ...>();
+        }
+        
         alignas(sizeof(AnonImpl<void *>)) char anon_mem_[sizeof(AnonImpl<void *>)];
         IAnon *anon_;
 
@@ -268,9 +280,12 @@ namespace nonstd {
 
         template<typename Ty>
         inline bool is() const noexcept {
-            using Tobj = typename value_of<Ty>::type;
+            return is_any_impl<Ty>();
+        }
 
-            return typeid(Tobj) == anon_->obj_type();
+        template<typename Ty, typename... Args>
+        inline bool is_any() const noexcept {
+            return is_any_impl<Ty, Args ...>();
         }
 
         template<typename Ty, typename ...Args>

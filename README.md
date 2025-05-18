@@ -156,18 +156,23 @@ int main() {
 ```c++
 #include "anon-ptr/anon-ptr.hpp"
 #include <iostream>
-#include <exception>
-// #include <typeinfo> // if you want to use std::bad_cast
 
 int main() {
     std::cout << "hello" << '\n';
 
     const auto float_ptr = nonstd::anon_ptr::make<float>(3.7f);
-    if (!float_ptr.is<float>()) {
+    if (float_ptr.is<float>()) {
+        std::cout << "Float type" << '\n';
+    } else {
         std::cerr << "Error: not a float" << '\n';
         return 1;
+    }
+
+    if (float_ptr.is_any<int, double, float>()) {
+        std::cout << "number" << '\n';
     } else {
-        std::cout << "Float type" << '\n';
+        std::cerr << "Error: not a number" << '\n';
+        return 1;
     }
 
     std::cout << "\n\nbye!!" << '\n';
