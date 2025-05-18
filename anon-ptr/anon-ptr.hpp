@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <utility> // std::forward, std::move
 #include <typeinfo> // std::type_info, std::bad_cast
-#include <type_traits> // std::decay, std::enable_if, std::is_same, std::add_pointer, std::is_pointer
+#include <type_traits> // std::decay, std::enable_if, std::is_same, std::add_pointer, std::is_pointer, std::is_void
 #include <string>
 
 
@@ -290,6 +290,7 @@ namespace nonstd {
 
         template<typename Ty, typename ...Args>
         static anon_ptr make(Args&& ...args) {
+            static_assert(!std::is_void<Ty>::value, "Cannot construct a void object");
             return anon_ptr( disambig<Ty>{}, std::forward<Args>(args) ... );
         }
     };
